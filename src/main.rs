@@ -6,7 +6,7 @@ use std::str::FromStr;
 use rand::seq::SliceRandom;
 use rand::thread_rng;
 
-use anyhow::{bail, Result, Context};
+use anyhow::{bail, Context, Result};
 use clap::Parser;
 
 #[derive(Parser)]
@@ -25,7 +25,6 @@ struct Cli {
     output: Option<String>,
 }
 
-// note: these contain newlines
 struct Track {
     extinf: Option<String>,
     path: String,
@@ -58,10 +57,8 @@ impl FromStr for M3U {
         }
         let mut tracks = Vec::new();
         let mut extinf = None;
-        for line in lines {
-            if line.trim().is_empty() {
-                continue;
-            } else if line.starts_with(EXTINF) {
+        for line in lines.filter(|l| !l.trim().is_empty()) {
+            if line.starts_with(EXTINF) {
                 extinf = Some(line.trim_end().to_string());
             } else {
                 tracks.push(Track {
@@ -90,12 +87,14 @@ fn main() -> Result<()> {
 
     // if args.file is None, read from STDIN
     let buffer = match args.file {
-        Some(ref file) => fs::read_to_string(file).context(format!("Unable to read from file '{}'", file))?,
-        None => io::read_to_string(io::stdin()).expect("Unable to read from STDIN")
+        Some(ref file) => {
+            fs::read_to_string(file).context(format!("Unable to read from file '{}'", file))?
+        }
+        None => io::read_to_string(io::stdin()).context("Unable to read from STDIN")?,
     };
 
     // parse, shuffle
-    let m3u = buffer.parse::<M3U>().context("Unable to parse into m3u format")?;
+    let m3u: M3U = buffer.parse().context("Unable to parse into m3u format")?;
     let mut tracks = m3u.tracks;
     tracks.shuffle(&mut thread_rng());
 
@@ -104,7 +103,9 @@ fn main() -> Result<()> {
 
     // write to STDOUT
     match args.output {
-        Some(ref file) => fs::write(file, out).context(format!("Unable to write to file '{}'", file))?,
+        Some(ref file) => {
+            fs::write(file, out).context(format!("Unable to write to file '{}'", file))?
+        }
         None => print!("{}", out),
     }
 
