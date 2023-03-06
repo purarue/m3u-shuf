@@ -16,7 +16,7 @@ Options:
   -V, --version          Print version
 ```
 
-### Install
+## Install
 
 Install [cargo](https://doc.rust-lang.org/cargo/getting-started/installation.html), then:
 
@@ -24,7 +24,7 @@ Install [cargo](https://doc.rust-lang.org/cargo/getting-started/installation.htm
 cargo install --git https://github.com/seanbreckenridge/m3u-shuf
 ```
 
-#### Example Usage
+## Example Usage
 
 `m3u-shuf playlist.m3u -o shuffled.m3u`
 
