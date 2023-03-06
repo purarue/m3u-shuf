@@ -1,0 +1,18 @@
+[package]
+name = "m3u-shuf"
+version = "0.1.0"
+edition = "2021"
+authors = ["Sean Breckenridge <seanbrecke@gmail.com>"]
+description = "CLI tool to shuffle a m3u file"
+repository = "https://github.com/seanbreckenridge/m3u-shuf"
+license = "MIT"
+readme = "README.md"
+keywords = ["m3u", "shuffle", "random"]
+categories = ["command-line-utilities"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1.0.69"
+clap = { version = "4.1.8", features = ["derive"] }
+rand = "0.8.5"
