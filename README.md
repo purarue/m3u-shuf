@@ -11,7 +11,7 @@ Arguments:
   [FILE]  m3u file to shuffle
 
 Options:
-  -o, --output <OUTPUT>  
+  -o, --output <OUTPUT>  output file to write to
   -h, --help             Print help (see more with '--help')
   -V, --version          Print version
 ```

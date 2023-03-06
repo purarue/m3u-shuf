@@ -20,7 +20,7 @@ struct Cli {
     /// m3u file to shuffle
     file: Option<String>,
 
-    // output file to write to. If not given, writes to STDOUT
+    /// output file to write to
     #[clap(short, long)]
     output: Option<String>,
 }
