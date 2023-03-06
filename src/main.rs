@@ -6,7 +6,7 @@ use std::str::FromStr;
 use rand::seq::SliceRandom;
 use rand::thread_rng;
 
-use anyhow::{bail, Result};
+use anyhow::{bail, Result, Context};
 use clap::Parser;
 
 #[derive(Parser)]
@@ -54,7 +54,7 @@ impl FromStr for M3U {
         let mut lines = s.lines();
         // make sure the first line is the header
         if !lines.next().unwrap_or_default().starts_with(EXTM3U) {
-            bail!("Invalid header")
+            bail!("Missing #EXTM3U header");
         }
         let mut tracks = Vec::new();
         let mut extinf = None;
@@ -90,19 +90,20 @@ fn main() -> Result<()> {
 
     // if args.file is None, read from STDIN
     let buffer = match args.file {
-        Some(ref file) => fs::read_to_string(file)?,
-        None => io::read_to_string(io::stdin())?,
+        Some(ref file) => fs::read_to_string(file).context(format!("Unable to read from file '{}'", file))?,
+        None => io::read_to_string(io::stdin()).expect("Unable to read from STDIN")
     };
 
     // parse
-    let mut tracks = buffer.parse::<M3U>()?.tracks;
+    let m3u = buffer.parse::<M3U>().context("Unable to parse into m3u format")?;
+    let mut tracks = m3u.tracks;
     tracks.shuffle(&mut thread_rng());
 
     let out = M3U { tracks }.to_string();
 
     // write to STDOUT
     match args.output {
-        Some(ref file) => fs::write(file, out)?,
+        Some(ref file) => fs::write(file, out).context(format!("Unable to write to file '{}'", file))?,
         None => print!("{}", out),
     }
 

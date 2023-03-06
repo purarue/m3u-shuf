@@ -3,23 +3,17 @@
 This supports a subset of the extended m3u format - requires the `#EXTM3U` header and keeps `#EXTINF` attached to each entry while shuffing.
 
 ```
-CLI tool to shuffle a m3u file. If no file given, reads from STDIN
+CLI tool to shuffle a m3u file
 
 Usage: m3u-shuf [OPTIONS] [FILE]
 
 Arguments:
-  [FILE]
-          m3u file to shuffle
+  [FILE]  m3u file to shuffle
 
 Options:
-  -o, --output <OUTPUT>
-
-
-  -h, --help
-          Print help (see a summary with '-h')
-
-  -V, --version
-          Print version
+  -o, --output <OUTPUT>  
+  -h, --help             Print help (see more with '--help')
+  -V, --version          Print version
 ```
 
 ### Install
