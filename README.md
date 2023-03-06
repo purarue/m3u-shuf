@@ -26,14 +26,18 @@ cargo install --git https://github.com/seanbreckenridge/m3u-shuf
 
 #### Example Usage
 
-`m3u-shuf playlist.m3u > shuffled.m3u`
-
 `m3u-shuf playlist.m3u -o shuffled.m3u`
 
-This supports shuffling in place, e.g.:
+If no output file is specified, it will write to STDOUT; can be piped to another command, or redirected to a file:
+
+`m3u-shuf playlist.m3u > shuffled.m3u`
+
+`m3u-shuf | tee shuffled.m3u`
+
+Shuffling in place:
 
 `m3u-shuf playlist.m3u -o playlist.m3u`
 
-... and reading from STDIN:
+If no input file is specified, it will read from STDIN:
 
-`cat playlist.m3u | m3u-shuf | tee shuffled.m3u`
+`plainplay m3u rock | m3u-shuf | tee rock.m3u`

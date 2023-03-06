@@ -94,11 +94,12 @@ fn main() -> Result<()> {
         None => io::read_to_string(io::stdin()).expect("Unable to read from STDIN")
     };
 
-    // parse
+    // parse, shuffle
     let m3u = buffer.parse::<M3U>().context("Unable to parse into m3u format")?;
     let mut tracks = m3u.tracks;
     tracks.shuffle(&mut thread_rng());
 
+    // serialize
     let out = M3U { tracks }.to_string();
 
     // write to STDOUT
