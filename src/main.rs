@@ -78,7 +78,7 @@ impl FromStr for M3U {
         for line in lines {
             let ln = line.to_string().trim_newline();
             if ln.trim().is_empty() {
-                continue
+                continue;
             } else if ln.starts_with(EXTINF) {
                 extinf = Some(ln);
             } else {
