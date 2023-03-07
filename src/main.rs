@@ -46,6 +46,18 @@ struct M3U {
 const EXTM3U: &str = "#EXTM3U";
 const EXTINF: &str = "#EXTINF";
 
+pub trait TrimNewline {
+    fn trim_newline(&mut self) -> Self;
+}
+
+impl TrimNewline for String {
+    fn trim_newline(&mut self) -> String {
+        let len = self.trim_end_matches(&['\r', '\n'][..]).len();
+        self.truncate(len);
+        self.to_string()
+    }
+}
+
 impl FromStr for M3U {
     type Err = anyhow::Error;
 
@@ -59,11 +71,11 @@ impl FromStr for M3U {
         let mut extinf = None;
         for line in lines.filter(|l| !l.trim().is_empty()) {
             if line.starts_with(EXTINF) {
-                extinf = Some(line.trim_end().to_string());
+                extinf = Some(line.to_string().trim_newline())
             } else {
                 tracks.push(Track {
                     extinf,
-                    path: line.trim_end().to_string(),
+                    path: line.to_string().trim_newline(),
                 });
                 extinf = None;
             }
@@ -110,4 +122,60 @@ fn main() -> Result<()> {
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::str;
+
+    #[test]
+    fn test_basic() {
+        let m3u: M3U = M3U::from_str(
+            r#"#EXTM3U
+#EXTINF:0,Artist1 - Title1
+path/to/file1.mp3
+#EXTINF:0,Artist2 - Title2
+path/to/file2.mp3
+"#,
+        )
+        .unwrap();
+        assert_eq!(m3u.tracks.len(), 2);
+        assert_eq!(m3u.tracks[0].path, "path/to/file1.mp3");
+        assert_eq!(m3u.tracks[1].path, "path/to/file2.mp3");
+        assert_eq!(
+            m3u.tracks[0].extinf,
+            Some("#EXTINF:0,Artist1 - Title1".to_string())
+        );
+        assert_eq!(
+            m3u.tracks[1].extinf,
+            Some("#EXTINF:0,Artist2 - Title2".to_string())
+        );
+    }
+
+    #[test]
+    fn test_windows_newline() {
+        let win_newline: String = str::from_utf8(&[b'\r', b'\n']).unwrap().to_string();
+        let buf = format!(
+            "{}{}",
+            r#"#EXTM3U
+#EXTINF:0,Artist1 - Title1
+path/to/file1.mp3"#,
+            win_newline
+        );
+        assert_eq!(buf[buf.len() - 2..], win_newline);
+        let m3u: M3U = M3U::from_str(&buf).unwrap();
+        assert_eq!(m3u.tracks.len(), 1);
+        assert_eq!(m3u.tracks[0].path, "path/to/file1.mp3");
+        assert_eq!(
+            m3u.tracks[0].extinf,
+            Some("#EXTINF:0,Artist1 - Title1".to_string())
+        );
+
+        // reserialize to test if windows newline was removed
+        let out = M3U { tracks: m3u.tracks }.to_string();
+        let mut ser = buf.clone().trim_newline();
+        ser.push_str("\n");
+        assert_eq!(out, ser);
+    }
 }
