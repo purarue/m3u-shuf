@@ -49,9 +49,6 @@ impl M3U {
     }
 }
 
-const EXTM3U: &str = "#EXTM3U";
-const EXTINF: &str = "#EXTINF";
-
 trait TrimNewline {
     fn trim_newline(&mut self) -> Self;
 }
@@ -63,6 +60,9 @@ impl TrimNewline for String {
         self.to_string()
     }
 }
+
+const EXTM3U: &str = "#EXTM3U";
+const EXTINF: &str = "#EXTINF";
 
 impl FromStr for M3U {
     type Err = anyhow::Error;
