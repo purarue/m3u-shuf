@@ -43,10 +43,16 @@ struct M3U {
     pub tracks: Vec<Track>,
 }
 
+impl M3U {
+    fn shuffle(&mut self) {
+        self.tracks.shuffle(&mut thread_rng());
+    }
+}
+
 const EXTM3U: &str = "#EXTM3U";
 const EXTINF: &str = "#EXTINF";
 
-pub trait TrimNewline {
+trait TrimNewline {
     fn trim_newline(&mut self) -> Self;
 }
 
@@ -69,14 +75,14 @@ impl FromStr for M3U {
         }
         let mut tracks = Vec::new();
         let mut extinf = None;
-        for line in lines.filter(|l| !l.trim().is_empty()) {
-            if line.starts_with(EXTINF) {
-                extinf = Some(line.to_string().trim_newline())
+        for line in lines {
+            let ln = line.to_string().trim_newline();
+            if ln.trim().is_empty() {
+                continue
+            } else if ln.starts_with(EXTINF) {
+                extinf = Some(ln);
             } else {
-                tracks.push(Track {
-                    extinf,
-                    path: line.to_string().trim_newline(),
-                });
+                tracks.push(Track { extinf, path: ln });
                 extinf = None;
             }
         }
@@ -106,19 +112,14 @@ fn main() -> Result<()> {
     };
 
     // parse, shuffle
-    let m3u: M3U = buffer.parse().context("Unable to parse into m3u format")?;
-    let mut tracks = m3u.tracks;
-    tracks.shuffle(&mut thread_rng());
+    let mut m3u: M3U = buffer.parse().context("Unable to parse into m3u format")?;
+    m3u.shuffle();
 
-    // serialize
-    let out = M3U { tracks }.to_string();
-
-    // write to STDOUT
+    // write to file or STDOUT
     match args.output {
-        Some(ref file) => {
-            fs::write(file, out).context(format!("Unable to write to file '{}'", file))?
-        }
-        None => print!("{}", out),
+        Some(ref file) => fs::write(file, m3u.to_string())
+            .context(format!("Unable to write to file '{}'", file))?,
+        None => print!("{}", m3u),
     }
 
     Ok(())
