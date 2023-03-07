@@ -1,6 +1,6 @@
 use std::fmt;
-use std::fs;
-use std::io;
+use std::fs::File;
+use std::io::{self, BufRead, BufReader, Lines, Write};
 use std::str::FromStr;
 
 use rand::seq::SliceRandom;
@@ -49,34 +49,25 @@ impl M3U {
     }
 }
 
-trait TrimNewline {
-    fn trim_newline(&mut self) -> Self;
-}
-
-impl TrimNewline for String {
-    fn trim_newline(&mut self) -> String {
-        let len = self.trim_end_matches(&['\r', '\n'][..]).len();
-        self.truncate(len);
-        self.to_string()
-    }
-}
-
 const EXTM3U: &str = "#EXTM3U";
 const EXTINF: &str = "#EXTINF";
 
-impl FromStr for M3U {
-    type Err = anyhow::Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let mut lines = s.lines();
+impl M3U {
+    fn from_buf_lines(mut lines: Lines<impl io::BufRead>) -> Result<Self, anyhow::Error> {
         // make sure the first line is the header
-        if !lines.next().unwrap_or_default().starts_with(EXTM3U) {
+        if !lines
+            .next()
+            .context("cannot read empty input")?
+            .context("cannot read line")?
+            .starts_with(EXTM3U)
+        {
             bail!("Missing #EXTM3U header");
         }
         let mut tracks = Vec::new();
         let mut extinf = None;
         for line in lines {
-            let ln = line.to_string().trim_newline();
+            // bufread already trims newline properly
+            let ln = line.context("cannot read line")?.to_string();
             if ln.trim().is_empty() {
                 continue;
             } else if ln.starts_with(EXTINF) {
@@ -87,6 +78,15 @@ impl FromStr for M3U {
             }
         }
         Ok(M3U { tracks })
+    }
+}
+
+impl FromStr for M3U {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let buffer = BufReader::new(s.as_bytes());
+        M3U::from_buf_lines(buffer.lines())
     }
 }
 
@@ -103,23 +103,38 @@ impl fmt::Display for M3U {
 fn main() -> Result<()> {
     let args = Cli::parse();
 
-    // if args.file is None, read from STDIN
-    let buffer = match args.file {
-        Some(ref file) => {
-            fs::read_to_string(file).context(format!("Unable to read from file '{}'", file))?
-        }
-        None => io::read_to_string(io::stdin()).context("Unable to read from STDIN")?,
-    };
+    let stdin = io::stdin();
+    let stdout = io::stdout();
 
-    // parse, shuffle
-    let mut m3u: M3U = buffer.parse().context("Unable to parse into m3u format")?;
+    let mut m3u: M3U;
+    // scope to drop reader after parsing
+    {
+        // if args.file is None, read from STDIN
+        let reader: Box<dyn BufRead> = match args.file {
+            Some(ref file) => Box::new(BufReader::new(
+                File::open(file).context(format!("Unable to open file to read from '{}'", file))?,
+            )),
+            None => Box::new(stdin.lock()),
+        };
+
+        // parse
+        m3u = M3U::from_buf_lines(reader.lines()).context("Unable to parse m3u file")?;
+    }
+    // shuffle
     m3u.shuffle();
 
-    // write to file or STDOUT
-    match args.output {
-        Some(ref file) => fs::write(file, m3u.to_string())
-            .context(format!("Unable to write to file '{}'", file))?,
-        None => print!("{}", m3u),
+    // scope to drop writer after writing, before program exits
+    {
+        // write to file or STDOUT
+        let mut out: Box<dyn Write> = match args.output {
+            Some(ref file) => File::create(file)
+                .map(|f| Box::new(f) as Box<dyn Write>)
+                .context(format!("Unable to open file to write to '{}'", file))?,
+            None => Box::new(stdout.lock()),
+        };
+
+        write!(out, "{}", m3u).context("Unable to write to output file")?;
+        out.flush()?;
     }
 
     Ok(())
@@ -175,7 +190,7 @@ path/to/file1.mp3"#,
 
         // reserialize to test if windows newline was removed
         let out = M3U { tracks: m3u.tracks }.to_string();
-        let mut ser = buf.clone().trim_newline();
+        let mut ser = buf.clone().trim_end_matches(&['\r', '\n'][..]).to_string();
         ser.push_str("\n");
         assert_eq!(out, ser);
     }
