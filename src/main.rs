@@ -1,7 +1,6 @@
 use std::fmt;
 use std::fs::File;
-use std::io::{self, BufRead, BufReader, Lines, Write};
-use std::str::FromStr;
+use std::io::{self, BufRead, BufReader, Write};
 
 use rand::seq::SliceRandom;
 use rand::thread_rng;
@@ -52,8 +51,11 @@ impl M3U {
 const EXTM3U: &str = "#EXTM3U";
 const EXTINF: &str = "#EXTINF";
 
-impl M3U {
-    fn from_buf_lines(mut lines: Lines<impl io::BufRead>) -> Result<Self, anyhow::Error> {
+impl TryFrom<Box<dyn BufRead>> for M3U {
+    type Error = anyhow::Error;
+
+    fn try_from(buf: Box<dyn BufRead>) -> Result<M3U, anyhow::Error> {
+        let mut lines = buf.lines();
         // make sure the first line is the header
         if !lines
             .next()
@@ -78,15 +80,6 @@ impl M3U {
             }
         }
         Ok(M3U { tracks })
-    }
-}
-
-impl FromStr for M3U {
-    type Err = anyhow::Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let buffer = BufReader::new(s.as_bytes());
-        M3U::from_buf_lines(buffer.lines())
     }
 }
 
@@ -118,7 +111,7 @@ fn main() -> Result<()> {
         };
 
         // parse
-        m3u = M3U::from_buf_lines(reader.lines()).context("Unable to parse m3u file")?;
+        m3u = reader.try_into().context("Unable to parse m3u file")?;
     }
     // shuffle
     m3u.shuffle();
@@ -147,15 +140,9 @@ mod tests {
 
     #[test]
     fn test_basic() {
-        let m3u: M3U = M3U::from_str(
-            r#"#EXTM3U
-#EXTINF:0,Artist1 - Title1
-path/to/file1.mp3
-#EXTINF:0,Artist2 - Title2
-path/to/file2.mp3
-"#,
-        )
-        .unwrap();
+        let file = File::open("testdata/basic.m3u").unwrap();
+        let buf = Box::new(BufReader::new(file)) as Box<dyn BufRead>;
+        let m3u: M3U = M3U::try_from(buf).unwrap();
         assert_eq!(m3u.tracks.len(), 2);
         assert_eq!(m3u.tracks[0].path, "path/to/file1.mp3");
         assert_eq!(m3u.tracks[1].path, "path/to/file2.mp3");
@@ -171,6 +158,7 @@ path/to/file2.mp3
 
     #[test]
     fn test_windows_newline() {
+        // create the testdata file if it doesn't exist
         let win_newline: String = str::from_utf8(&[b'\r', b'\n']).unwrap().to_string();
         let buf = format!(
             "{}{}",
@@ -180,7 +168,18 @@ path/to/file1.mp3"#,
             win_newline
         );
         assert_eq!(buf[buf.len() - 2..], win_newline);
-        let m3u: M3U = M3U::from_str(&buf).unwrap();
+        let filename = "testdata/windows_newline.m3u";
+        let testdata = std::path::Path::new(filename);
+        if !testdata.exists() {
+            // write to file
+            let mut file = File::create(filename).unwrap();
+            file.write_all(buf.as_bytes()).unwrap();
+        }
+
+        // read from file
+        let file = File::open(filename).unwrap();
+        let bufreader = Box::new(BufReader::new(file)) as Box<dyn BufRead>;
+        let m3u: M3U = M3U::try_from(bufreader).unwrap();
         assert_eq!(m3u.tracks.len(), 1);
         assert_eq!(m3u.tracks[0].path, "path/to/file1.mp3");
         assert_eq!(
