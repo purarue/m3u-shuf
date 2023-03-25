@@ -38,6 +38,6 @@ Shuffling in place:
 
 `m3u-shuf playlist.m3u -o playlist.m3u`
 
-If no input file is specified, it will read from STDIN:
+If no input file is specified, it will read from STDIN (e.g. with [`plainplay`](https://github.com/seanbreckenridge/plaintext-playlist)):
 
 `plainplay m3u rock | m3u-shuf | tee rock.m3u`
