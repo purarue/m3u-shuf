@@ -2,9 +2,9 @@
 name = "m3u-shuf"
 version = "0.1.0"
 edition = "2021"
-authors = ["Sean Breckenridge <seanbrecke@gmail.com>"]
+authors = ["purarue"]
 description = "CLI tool to shuffle a m3u file"
-repository = "https://github.com/seanbreckenridge/m3u-shuf"
+repository = "https://github.com/purarue/m3u-shuf"
 license = "MIT"
 readme = "README.md"
 keywords = ["m3u", "shuffle", "random"]

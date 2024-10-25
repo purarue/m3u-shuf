@@ -21,7 +21,7 @@ Options:
 Install [cargo](https://doc.rust-lang.org/cargo/getting-started/installation.html), then:
 
 ```
-cargo install --git https://github.com/seanbreckenridge/m3u-shuf
+cargo install --git https://github.com/purarue/m3u-shuf
 ```
 
 ## Example Usage
@@ -38,6 +38,6 @@ Shuffling in place:
 
 `m3u-shuf playlist.m3u -o playlist.m3u`
 
-If no input file is specified, it will read from STDIN (e.g. with [`plainplay`](https://github.com/seanbreckenridge/plaintext-playlist)):
+If no input file is specified, it will read from STDIN (e.g. with [`plainplay`](https://github.com/purarue/plaintext-playlist)):
 
 `plainplay m3u rock | m3u-shuf | tee rock.m3u`
