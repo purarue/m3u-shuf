@@ -14,4 +14,4 @@ categories = ["command-line-utilities"]
 [dependencies]
 anyhow = "1.0.69"
 clap = { version = "4.1.8", features = ["derive"] }
-rand = "0.8.5"
+rand = "0.9.3"
